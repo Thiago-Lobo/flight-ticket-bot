@@ -28,7 +28,7 @@ def track_google_flights_url(url):
 		chrome_option = webdriver.ChromeOptions()
 		chrome_option.add_argument('--headless')
 		chrome_option.add_argument('--disable-gpu')
-		driver = webdriver.Chrome(executable_path="/usr/local/bin/chromedriver", chrome_options=chrome_option)
+		driver = webdriver.Chrome(executable_path="/usr/bin/chromedriver", options=chrome_option)
 
 		driver.get(url)
 		time.sleep(5)
@@ -38,17 +38,17 @@ def track_google_flights_url(url):
 
 		for row in rows:
 			result.append({
-				"price": int(filter(str.isdigit, row.find_element_by_class_name("gws-flights-results__price").text.encode('utf8'))),
-				"hour": row.find_element_by_class_name("gws-flights-results__times").text.encode('utf8'),
-				"carrier": row.find_element_by_class_name("gws-flights-results__carriers").text.encode('utf8').split('\n')[0],
-				"duration": row.find_element_by_class_name("gws-flights-results__duration").text.encode('utf8'),
-				"airports": row.find_element_by_class_name("gws-flights-results__airports").text.encode('utf8'),
-				"stops": row.find_element_by_class_name("gws-flights-results__stops").text.encode('utf8')
+				"price": int(re.sub(r'[^0-9]', r'', row.find_element_by_class_name("gws-flights-results__price").text)),
+				"hour": row.find_element_by_class_name("gws-flights-results__times").text,
+				"carrier": row.find_element_by_class_name("gws-flights-results__carriers").text.split('\n')[0],
+				"duration": row.find_element_by_class_name("gws-flights-results__duration").text,
+				"airports": row.find_element_by_class_name("gws-flights-results__airports").text,
+				"stops": row.find_element_by_class_name("gws-flights-results__stops").text
 			})
 
 		# driver.save_screenshot('screenshot.png')
 	except:
-		print traceback.format_exc()
+		print(traceback.format_exc())
 	finally:
 		driver.quit()
 
