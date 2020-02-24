@@ -14,7 +14,7 @@ from telegram import ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMa
 from selenium import webdriver
 
 TELEGRAM_COMMAND_TRACK_FLIGHT_PRICE = 'track_flight'
-TRACKING_PERIOD_MINUTES = 1
+bot_configuration = None
 
 ####################################################
 ## Flights tracker
@@ -27,6 +27,8 @@ def track_google_flights_url(url):
 		chrome_option = webdriver.ChromeOptions()
 		chrome_option.add_argument('--headless')
 		chrome_option.add_argument('--disable-gpu')
+		chrome_option.add_argument('--no-sandbox')
+		chrome_option.add_argument('--disable-dev-shm-usage')
 		driver = webdriver.Chrome(executable_path="/usr/bin/chromedriver", options=chrome_option)
 
 		driver.get(url)
@@ -92,7 +94,7 @@ def track_flight(update, context):
 
 def initialize_logging():
 	logging.basicConfig(
-			filename='flight_bot.log',
+			filename='/log/flight_bot.log',
 			level=logging.DEBUG,
 			format='%(asctime)s.%(msecs)03d [%(name)s] %(levelname)-7s %(funcName)s - %(message)s', 
 			datefmt='%Y-%m-%d %H:%M:%S'
@@ -107,8 +109,8 @@ def load_configuration_file(path):
 
 	return loaded
 
-def initialize_bot(configuration):
-	updater = Updater(token=configuration['telegram-api-key'], use_context=True)
+def initialize_bot():
+	updater = Updater(token=bot_configuration['telegram-api-key'], use_context=True)
 	dispatcher = updater.dispatcher
 	
 	dispatcher.add_handler(CommandHandler(TELEGRAM_COMMAND_TRACK_FLIGHT_PRICE, track_flight))
@@ -118,9 +120,12 @@ def initialize_bot(configuration):
 	updater.idle()
 
 def main():
+	global bot_configuration
+	
+	bot_configuration = load_configuration_file('./bot-config.yml')
+
 	initialize_logging()
-	configuration = load_configuration_file('./bot-config.yml')
-	initialize_bot(configuration)
+	initialize_bot()
 
 if __name__ == '__main__':
 	main()
