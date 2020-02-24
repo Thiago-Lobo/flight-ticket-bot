@@ -10,7 +10,7 @@ def main():
         chrome_option.add_argument('--disable-gpu')
         driver = webdriver.Chrome(executable_path="/usr/bin/chromedriver", options=chrome_option)
         
-        driver.get("https://www.google.com/flights?hl=en#flt=/m/06gmr.CAI.2020-02-21*CAI./m/06gmr.2020-02-25;c:BRL;e:1;sd:1;t:f")
+        driver.get("https://www.google.com/flights?hl=en#flt=/m/06gmr./m/06mxs.2020-03-11*/m/06mxs./m/06gmr.2020-03-15;c:BRL;e:1;sd:1;t:f")
         time.sleep(3)
         
         date = driver.find_element_by_class_name("gws-flights-form__departure-input").text
@@ -34,7 +34,7 @@ def main():
             print(airports)
             print(stops)
 
-        # driver.save_screenshot('screenshot.png')
+        driver.save_screenshot('screenshot.png')
     except:
         print(traceback.format_exc())
     finally:

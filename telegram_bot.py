@@ -6,15 +6,14 @@ import re
 import json
 import time
 import traceback
+import yaml
+import logging
 from datetime import datetime, timedelta
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler
 from telegram import ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
 from selenium import webdriver
 
-API_KEY_FILE = 'telegram_api.key'
-
 TELEGRAM_COMMAND_TRACK_FLIGHT_PRICE = 'track_flight'
-
 TRACKING_PERIOD_MINUTES = 1
 
 ####################################################
@@ -45,8 +44,6 @@ def track_google_flights_url(url):
 				"airports": row.find_element_by_class_name("gws-flights-results__airports").text,
 				"stops": row.find_element_by_class_name("gws-flights-results__stops").text
 			})
-
-		# driver.save_screenshot('screenshot.png')
 	except:
 		print(traceback.format_exc())
 	finally:
@@ -78,36 +75,52 @@ def track_google_flights(bot, update, url, price_threshold):
 ## Handler Callbacks
 ####################################################
 
-def unknown(bot, update):
-	bot.send_message(chat_id=update.message.chat_id, text='Unknown command.', reply_markup=None)
+def unknown(update, context):
+	context.bot.send_message(chat_id=update.message.chat_id, text='Unknown command.', reply_markup=None)
 
-def track_flight(bot, update, job_queue, args):
-	url = args[0]
-	price_threshold = int(args[1])
+def track_flight(update, context):
+	url = context.args[0]
+	price_threshold = int(context.args[1])
 
-	job_queue.run_repeating(lambda bot, job: track_google_flights(bot, update, url, price_threshold), 10)
+	context.job_queue.run_repeating(lambda context: track_google_flights(context.bot, update, url, price_threshold), 10)
 
-	bot.send_message(chat_id=update.message.chat_id, text='Now tracking flights in URL "{0}" for prices less than {1}.'.format(url, price_threshold))
+	context.bot.send_message(chat_id=update.message.chat_id, text='Now tracking flights in URL "{0}" for prices less than {1}.'.format(url, price_threshold))
 
 ####################################################
 ## Initializers
 ####################################################
 
-def initialize_bot():
-	k = open(API_KEY_FILE, 'r')
+def initialize_logging():
+	logging.basicConfig(
+			filename='flight_bot.log',
+			level=logging.DEBUG,
+			format='%(asctime)s.%(msecs)03d [%(name)s] %(levelname)-7s %(funcName)s - %(message)s', 
+			datefmt='%Y-%m-%d %H:%M:%S'
+	)
 
-	updater = Updater(token = k.readlines()[0].strip())
+def load_configuration_file(path):
+	file = open(path, 'r')
+
+	loaded = yaml.load(file, Loader=yaml.FullLoader)
+
+	file.close()
+
+	return loaded
+
+def initialize_bot(configuration):
+	updater = Updater(token=configuration['telegram-api-key'], use_context=True)
 	dispatcher = updater.dispatcher
-	queue = updater.job_queue
 	
-	dispatcher.add_handler(CommandHandler(TELEGRAM_COMMAND_TRACK_FLIGHT_PRICE, track_flight, pass_args=True, pass_job_queue=True))
+	dispatcher.add_handler(CommandHandler(TELEGRAM_COMMAND_TRACK_FLIGHT_PRICE, track_flight))
 	dispatcher.add_handler(MessageHandler(Filters.command, unknown))
 		
 	updater.start_polling()
 	updater.idle()
 
 def main():
-	initialize_bot()
+	initialize_logging()
+	configuration = load_configuration_file('./bot-config.yml')
+	initialize_bot(configuration)
 
 if __name__ == '__main__':
 	main()
